@@ -8,6 +8,8 @@ import (
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -20,17 +22,25 @@ func main() {
 	defer func() {
 		err := recover()
 		if err != nil {
-			log.Printf("Error: %v\n", err)
+			log.Printf("Error: %v\n", errors.Cause(err.(error)))
 		}
 	}()
 
-	ip := flag.String("ip", "", fmt.Sprintf("ip address, default: %s", DefaultHost))
+	localIp, err := getIpsV4("以太网")
+	if err != nil {
+		panic(err)
+	}
+	if len(localIp) == 0 {
+		localIp = DefaultHost
+	}
+
+	ip := flag.String("ip", "", fmt.Sprintf("ip address, default: %s", localIp))
 	port := flag.Int("port", 0, fmt.Sprintf("port, default: %d", DefaultPort))
 	rootPath := flag.String("root", "", fmt.Sprintf("root path, default: %s", DefaultPath))
 	flag.Parse()
 
 	confPath := "./svr.conf"
-	conf, err := LoadConfigOrDefault(confPath, DefaultPath, DefaultHost, DefaultPort)
+	conf, err := LoadConfigOrDefault(confPath, DefaultPath, localIp, DefaultPort)
 	if err != nil {
 		panic(err)
 	}
